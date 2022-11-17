@@ -173,6 +173,9 @@ class Generator(nn.Module):
             output = block(z_sample, output)
         
         return self.output_layer(output)
+    
+    def sample(self, batch: int):
+        return self.forward(self.sampleLatentVariables(batch))
 
     def regularizeUOrthogonal(self):
         reg = []

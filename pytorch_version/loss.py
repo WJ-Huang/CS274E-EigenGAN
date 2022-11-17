@@ -13,4 +13,7 @@ def calculateHingeLoss():
 
     return calculateDLoss, calculateGLoss
 
-
+# %%
+def calculateR1Loss(output, input):
+    grad, = torch.autograd.grad(outputs=output.sum(), inputs=input, create_graph=True)
+    return grad.pow(2).reshape(grad.shape[0], -1).sum(1).mean()
