@@ -67,7 +67,7 @@ loader = infinite_loader(
 )
 
 for step in range(STEPS):
-
+    print(step)
     real = next(loader).to(device)
     with torch.no_grad():
         fake = generator.sample(BATCH)
@@ -81,6 +81,7 @@ for step in range(STEPS):
     discriminator_loss.backward()
     d_optim.step()
 
+    print("r1")
     # R1 penalty
     real.requires_grad = True
     real_pred = discriminator(real)

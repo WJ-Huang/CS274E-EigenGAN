@@ -15,11 +15,10 @@ class SubspaceModel(nn.Module):
         self.U = nn.Parameter(torch.empty((dim, num_basis)))    # size(d, q)
         nn.init.orthogonal_(self.U)
         self.L = nn.Parameter(torch.FloatTensor([3 * i for i in range(num_basis, 0, -1)])) # q
-        self.mu = nn.Parameter(torch.zeros(num_basis)) # size(d, 1)
+        self.mu = nn.Parameter(torch.zeros(dim)) # size(d, 1)
 
     def forward(self, z):
-        print((self.L * z).shape, self.U.shape, self.mu.shape)
-        return self.U.mm(self.L * z) + self.mu
+        return torch.mm(self.L * z, self.U.T) + self.mu
 
 class ConvLayer(nn.Module):
     def __init__(self,
@@ -43,7 +42,7 @@ class ConvLayer(nn.Module):
         else:
             conv = nn.Conv2d
         
-        layers = [conv(
+        self.layers = [conv(
                     in_channels, 
                     out_channels,
                     kernel_size=kernel_size,
@@ -53,9 +52,14 @@ class ConvLayer(nn.Module):
                     )]
         if activation:
             if pre_activate:
-                layers.insert(0, nn.LeakyReLU())
+                self.layers.insert(0, nn.LeakyReLU())
             else:
-                layers.append(nn.LeakyReLU())
+                self.layers.append(nn.LeakyReLU())
+
+        self.layers = nn.Sequential(*self.layers)
+
+    def forward(self, x):
+        return self.layers(x)
         
 
 class EigenBlock(nn.Module):
@@ -183,10 +187,8 @@ class Generator(nn.Module):
         reg = []
         for layer in self.modules():
             if isinstance(layer, SubspaceModel):
-                UUT = layer.U.matmul(layer.U.transpose())
-                reg.append(
-                    torch.mean((UUT - torch.eye(UUT.shape([0]), device=UUT.device))**2)
-                    )
+                UUT = layer.U.matmul(layer.U.T)
+                reg.append(torch.mean((UUT - torch.eye(UUT.shape[0], device=UUT.device))**2))
         return sum(reg) / len(reg)
 
 
