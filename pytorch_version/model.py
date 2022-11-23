@@ -14,10 +14,11 @@ class SubspaceModel(nn.Module):
         super().__init__()
         self.U = nn.Parameter(torch.empty((dim, num_basis)))    # size(d, q)
         nn.init.orthogonal_(self.U)
-        self.L = nn.Parameter(torch.FloatTensor([3 * i for i in range(num_basis, 0, -1)])) #
-        self.mu = nn.Parameter(torch.zeros(dim)) # size(d, 1)
+        self.L = nn.Parameter(torch.FloatTensor([3 * i for i in range(num_basis, 0, -1)])) # q
+        self.mu = nn.Parameter(torch.zeros(num_basis)) # size(d, 1)
 
     def forward(self, z):
+        print((self.L * z).shape, self.U.shape, self.mu.shape)
         return self.U.mm(self.L * z) + self.mu
 
 class ConvLayer(nn.Module):
@@ -35,6 +36,7 @@ class ConvLayer(nn.Module):
         activation: bool = True, 
         pre_activate: bool = False
     ) -> None:
+        super().__init__()
         if transposed:
             conv = partial(nn.ConvTranspose2d, output_padding=stride - 1)
             padding_mode = "zeros"
@@ -54,7 +56,7 @@ class ConvLayer(nn.Module):
                 layers.insert(0, nn.LeakyReLU())
             else:
                 layers.append(nn.LeakyReLU())
-        super().__init__(*layers)
+        
 
 class EigenBlock(nn.Module):
     def __init__(self, 
