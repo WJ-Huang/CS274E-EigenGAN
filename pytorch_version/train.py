@@ -5,7 +5,8 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from dataset import Dataset, infinite_loader
 
-DATASET_PATH = "../data/test"
+# DATASET_PATH = "../data/test"
+DATASET_PATH = "D:/UCI/1-Q1/Deep Generative Model/Final Project/CS274E-EigenGAN/data/new-test"
 SIZE = 64
 BATCH = 16
 LEARNING_RATE = 1e-3
