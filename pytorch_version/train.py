@@ -5,19 +5,21 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from dataset import Dataset, infinite_loader
 
-# DATASET_PATH = "../data/test"
-DATASET_PATH = "D:/UCI/1-Q1/Deep Generative Model/Final Project/CS274E-EigenGAN/data/new-test"
-SIZE = 64
+DATASET_PATH = "../data/anime"
+SIZE = 32
 BATCH = 16
 LEARNING_RATE = 1e-3
-STEPS = 10
+STEPS = 1e6
 NUM_BASIS = 6
 NOISE_DIM = 512
 BASE_CHANNELS = 16
 MAX_CHANNELS = 512
 R1_PENALTY_COEFFICIENT = 10
 ORTHOGONAL_REGULERIZATION_COEFFICIENT = 100
+SAVE_EVERY = 100
+
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+torch.manual_seed(0)
 
 generator = model.Generator(
     size=SIZE,
@@ -68,7 +70,6 @@ loader = infinite_loader(
 )
 
 for step in range(STEPS):
-    print(step)
     real = next(loader).to(device)
     with torch.no_grad():
         fake = generator.sample(BATCH)
@@ -82,7 +83,6 @@ for step in range(STEPS):
     discriminator_loss.backward()
     d_optim.step()
 
-    print("r1")
     # R1 penalty
     real.requires_grad = True
     real_pred = discriminator(real)
@@ -98,4 +98,8 @@ for step in range(STEPS):
     generator_loss.backward()
     g_optim.step()
 
-    print(f'Step: \t {step}, D_loss:\t{discriminator_loss.item()}, G_loss:\t{generator_loss.item()}')
+    print(f'Step: {step}/{STEPS}, D_loss: {discriminator_loss.item()}, G_loss: {generator_loss.item()}')
+
+    if step > 0 and step % SAVE_EVERY == 0:
+        torch.save(discriminator.state_dict(), f"../model_checkpoints/discriminator_step_{step}.pth")
+        torch.save(generator.state_dict(), f"../model_checkpoints/generator_step_{step}.pth")
