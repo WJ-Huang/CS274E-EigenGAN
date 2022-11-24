@@ -6,17 +6,18 @@ from torch.utils.data import DataLoader
 from dataset import Dataset, infinite_loader
 
 DATASET_PATH = "../data/anime"
+TRAINING_LOSS_FILE = "../training_loss.csv"
 SIZE = 32
 BATCH = 16
 LEARNING_RATE = 1e-3
-STEPS = 1000000
+STEPS = 300000
 NUM_BASIS = 6
 NOISE_DIM = 512
 BASE_CHANNELS = 16
 MAX_CHANNELS = 512
 R1_PENALTY_COEFFICIENT = 10
 ORTHOGONAL_REGULERIZATION_COEFFICIENT = 100
-SAVE_EVERY = 100
+SAVE_EVERY = 1000
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 torch.manual_seed(0)
@@ -49,6 +50,7 @@ d_optim = torch.optim.Adam(
 
 # losses
 calculateDLoss, calculateGLoss = loss.calculateHingeLoss()
+training_loss = open(TRAINING_LOSS_FILE)
 
 # data
 transform = transforms.Compose([
@@ -99,7 +101,10 @@ for step in range(STEPS):
     g_optim.step()
 
     print(f'Step: {step}/{STEPS}, D_loss: {discriminator_loss.item()}, G_loss: {generator_loss.item()}')
+    training_loss.write(f"{discriminator_loss.item()}, {generator_loss.item()}\n")
 
     if step > 0 and step % SAVE_EVERY == 0:
         torch.save(discriminator.state_dict(), f"../model_checkpoints/discriminator_step_{step}.pth")
         torch.save(generator.state_dict(), f"../model_checkpoints/generator_step_{step}.pth")
+        
+training_loss.close()
