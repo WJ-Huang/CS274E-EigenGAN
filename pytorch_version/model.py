@@ -28,10 +28,7 @@ class ConvLayer(nn.Module):
         stride: int = 1, 
         padding: int = 1, 
         padding_mode: str = "zeros", 
-        # groups: int = 1, 
-        # # bias: bool = True, 
         transposed: bool = False, 
-        # normalization: str = None, 
         activation: bool = True, 
         pre_activate: bool = False
     ) -> None:
@@ -119,11 +116,11 @@ class EigenBlock(nn.Module):
 # %%
 class Generator(nn.Module):
     def __init__(self,
-        size: int = 256,
+        size: int = 64,
         num_basis: int = 6,
-        noise_dim: int = 512, # generator input (\epsilon) dim
+        noise_dim: int = 64, # generator input (\epsilon) dim
         base_channels: int = 16,
-        max_channels: int = 512
+        max_channels: int = 64
     ) -> None:
         super().__init__()
 
@@ -194,9 +191,9 @@ class Generator(nn.Module):
 
 class Discriminator(nn.Module):
     def __init__(self,
-        size: int = 256,
+        size: int = 64,
         base_channels: int = 16,
-        max_channels: int = 512    
+        max_channels: int = 64    
     ) -> None:
         super().__init__()
 
