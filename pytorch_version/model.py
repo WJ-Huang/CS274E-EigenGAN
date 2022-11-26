@@ -1,11 +1,8 @@
-# %%
-import numpy as np
 import math
 import torch
 import torch.nn as nn
-from functools import partial
+import torch.nn.functional as F
 
-# %%
 class SubspaceModel(nn.Module):
     def __init__(self, 
         dim: int,           # d
@@ -14,50 +11,11 @@ class SubspaceModel(nn.Module):
         super().__init__()
         self.U = nn.Parameter(torch.empty((dim, num_basis)))    # size(d, q)
         nn.init.orthogonal_(self.U)
-        self.L = nn.Parameter(torch.FloatTensor([3 * i for i in range(num_basis, 0, -1)])) # q
+        self.L = nn.Parameter(torch.ones(num_basis)) # q
         self.mu = nn.Parameter(torch.zeros(dim)) # size(d, 1)
 
     def forward(self, z):
         return torch.mm(self.L * z, self.U.T) + self.mu
-
-class ConvLayer(nn.Module):
-    def __init__(self,
-        in_channels: int, 
-        out_channels: int, 
-        kernel_size: int = 3, 
-        stride: int = 1, 
-        padding: int = 1, 
-        padding_mode: str = "zeros", 
-        transposed: bool = False, 
-        activation: bool = True, 
-        pre_activate: bool = False
-    ) -> None:
-        super().__init__()
-        if transposed:
-            conv = partial(nn.ConvTranspose2d, output_padding=stride - 1)
-            padding_mode = "zeros"
-        else:
-            conv = nn.Conv2d
-        
-        self.layers = [conv(
-                    in_channels, 
-                    out_channels,
-                    kernel_size=kernel_size,
-                    stride=stride,
-                    padding=padding,
-                    padding_mode=padding_mode
-                    )]
-        if activation:
-            if pre_activate:
-                self.layers.insert(0, nn.LeakyReLU())
-            else:
-                self.layers.append(nn.LeakyReLU())
-
-        self.layers = nn.Sequential(*self.layers)
-
-    def forward(self, x):
-        return self.layers(x)
-        
 
 class EigenBlock(nn.Module):
     def __init__(self, 
@@ -72,48 +30,55 @@ class EigenBlock(nn.Module):
             dim=width * height * in_channels, 
             num_basis=num_basis
         )
-        self.subspace_conv1 = ConvLayer( # output size H
+
+        self.subspace_conv1 = nn.ConvTranspose2d(
             in_channels,
             in_channels,
             kernel_size=1,
             stride=1,
             padding=0,
-            transposed=True,
-            activation=False
+            output_padding=0
         )
-        self.subspace_conv2 = ConvLayer( # output size 2H
+
+        self.subspace_conv2 = nn.ConvTranspose2d(
             in_channels,
             out_channels,
             kernel_size=3,
             stride=2,
             padding=1,
-            transposed=True,
-            activation=False
+            output_padding=1
         )
-        self.feature_conv1 = ConvLayer( # output size 2H
+
+        self.feature_conv1 = nn.ConvTranspose2d( # output size 2H
             in_channels,
             out_channels,
             kernel_size=3,
             stride=2,
-            transposed=True,
-            pre_activate=True
+            padding=1,
+            output_padding=1
         )
-        self.feature_conv2 = ConvLayer( # output size H
+
+        self.feature_conv2 = nn.ConvTranspose2d( # output size H
             out_channels,
             out_channels,
             kernel_size=3,
             stride=1,
-            transposed=True,
-            pre_activate=True
+            padding=1,
+            output_padding=0
         )
     
     def forward(self, z, h):
-        phi = self.subspacelayer(z).view(h.shape)
-        h = self.feature_conv1(self.subspace_conv1(phi) + h)
-        h = self.feature_conv2(self.subspace_conv2(phi) + h)
-        return h
+        phi = self.subspacelayer(z).reshape(h.shape)
 
-# %%
+        out = self.subspace_conv1(phi) + h
+        out = F.leaky_relu(out)
+        out = self.feature_conv1(out)
+
+        out = self.subspace_conv2(phi) + out
+        out = F.leaky_relu(out)
+        out = self.feature_conv2(out)
+        return out
+
 class Generator(nn.Module):
     def __init__(self,
         size: int = 64,
@@ -123,8 +88,6 @@ class Generator(nn.Module):
         max_channels: int = 64
     ) -> None:
         super().__init__()
-
-        assert (size & (size-1) == 0) and size != 0, "image size should be a power of 2."
 
         self.noise_dim = noise_dim
         self.num_basis = num_basis
@@ -148,13 +111,13 @@ class Generator(nn.Module):
             )
         
         self.output_layer = nn.Sequential(
-            ConvLayer(
+            nn.LeakyReLU(),
+            nn.Conv2d(
                 base_channels,
                 3,
                 kernel_size=7,
                 stride=1,
-                padding=3, # keep the size same
-                pre_activate=True
+                padding=3
             ),
             nn.Tanh()
         )
@@ -171,7 +134,7 @@ class Generator(nn.Module):
     def forward(self, latent_variables):
         epsilon_samples, z_samples = latent_variables
 
-        output = self.fc_layer(epsilon_samples).view(len(epsilon_samples), -1, 4, 4)
+        output = self.fc_layer(epsilon_samples).reshape(len(epsilon_samples), -1, 4, 4)
         for block, z_sample in zip(self.blocks, torch.permute(z_samples, (1, 0, 2))):
             output = block(z_sample, output)
         
@@ -180,14 +143,14 @@ class Generator(nn.Module):
     def sample(self, batch: int):
         return self.forward(self.sampleLatentVariables(batch))
 
-    def regularizeUOrthogonal(self):
+    def regularize(self):
         reg = []
         for layer in self.modules():
             if isinstance(layer, SubspaceModel):
                 UUT = layer.U.matmul(layer.U.T)
-                reg.append(torch.mean((UUT - torch.eye(UUT.shape[0], device=UUT.device))**2))
-        return sum(reg) / len(reg)
-
+                M = UUT - torch.eye(UUT.shape[0], device=UUT.device)
+                reg.append(torch.mean(M**2))
+        return torch.mean(torch.stack(reg))
 
 class Discriminator(nn.Module):
     def __init__(self,
@@ -198,28 +161,32 @@ class Discriminator(nn.Module):
         super().__init__()
 
         blocks = [
-            ConvLayer(
+            nn.Conv2d(
                 3,
                 base_channels,
                 kernel_size=7,
                 stride=1,
-                padding=3 # keep the same size
-            )
+                padding=3
+            ),
+            nn.LeakyReLU()
         ]
 
         num_channels = base_channels
         for _ in range(int(math.log(size, 2) - 2)):
             next_num_channels = min(max_channels, num_channels * 2)
             blocks += [
-                ConvLayer(num_channels, num_channels, kernel_size=3, stride=1), # same size
-                ConvLayer(num_channels, next_num_channels, kernel_size=3, stride=2) # downsample to H/2
-                ]
+                nn.Conv2d(num_channels, num_channels, kernel_size=3, stride=1, padding=1),
+                nn.LeakyReLU(),
+                nn.Conv2d(num_channels, next_num_channels, kernel_size=3, stride=2, padding=1),
+                nn.LeakyReLU()
+            ]
             num_channels = next_num_channels
-        blocks.append(ConvLayer(num_channels, num_channels, kernel_size=3, stride=1))
+        blocks.append(nn.Conv2d(num_channels, num_channels, kernel_size=3, stride=1, padding=1))
+        blocks.append(nn.LeakyReLU())
 
         self.blocks = nn.Sequential(*blocks)
         self.output_layer = nn.Sequential(
-            nn.Flatten(), #
+            nn.Flatten(),
             nn.Linear(4 * 4 * num_channels, num_channels),
             nn.LeakyReLU(),
             nn.Linear(num_channels, 1)
@@ -228,7 +195,3 @@ class Discriminator(nn.Module):
     def forward(self, input):
         output = self.blocks(input)
         return self.output_layer(output)
-
-
-
-

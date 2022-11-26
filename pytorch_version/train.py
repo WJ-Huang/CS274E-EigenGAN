@@ -50,7 +50,6 @@ if __name__ == "__main__":
     )
 
     # losses
-    calculateDLoss, calculateGLoss = loss.calculateHingeLoss()
     training_loss = open(TRAINING_LOSS_FILE, "a")
 
     # data
@@ -81,7 +80,7 @@ if __name__ == "__main__":
         fake_pred = discriminator(fake)
 
         # adverserial loss
-        discriminator_loss = calculateDLoss(real_pred, fake_pred)
+        discriminator_loss = loss.discriminator_hinge_loss(real_pred, fake_pred)
         discriminator.zero_grad()
         discriminator_loss.backward()
         d_optim.step()
@@ -89,14 +88,14 @@ if __name__ == "__main__":
         # R1 penalty
         real.requires_grad = True
         real_pred = discriminator(real)
-        r1 = loss.calculateR1Loss(real_pred, real) * R1_PENALTY_COEFFICIENT
+        r1 = loss.r1_loss(real_pred, real) * R1_PENALTY_COEFFICIENT
         discriminator.zero_grad()
         r1.backward()
         d_optim.step()
 
         fake = generator.sample(BATCH)
         fake_pred = discriminator(fake)
-        generator_loss = calculateGLoss(fake_pred) + generator.regularizeUOrthogonal() * ORTHOGONAL_REGULERIZATION_COEFFICIENT
+        generator_loss = loss.generator_hinge_loss(fake_pred) + generator.regularize() * ORTHOGONAL_REGULERIZATION_COEFFICIENT
         generator.zero_grad()
         generator_loss.backward()
         g_optim.step()

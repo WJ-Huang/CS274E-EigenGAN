@@ -1,8 +1,6 @@
-# %%
 import os
 from PIL import Image
 
-# %%
 IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
 
 def infinite_loader(data_loader):
