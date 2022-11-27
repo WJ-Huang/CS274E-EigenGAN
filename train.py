@@ -5,8 +5,8 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from dataset import Dataset, infinite_loader
 
-DATASET_PATH = "../data/anime"
-TRAINING_LOSS_FILE = "../training_loss.csv"
+DATASET_PATH = "data/anime"
+TRAINING_LOSS_FILE = "training_loss.csv"
 SIZE = 32
 BATCH = 16
 LEARNING_RATE = 1e-3
@@ -104,7 +104,7 @@ if __name__ == "__main__":
         training_loss.write(f"{discriminator_loss.item()}, {generator_loss.item()}\n")
 
         if step > 0 and step % SAVE_EVERY == 0:
-            torch.save(discriminator.state_dict(), f"../model_checkpoints/discriminator_step_{step}.pth")
-            torch.save(generator.state_dict(), f"../model_checkpoints/generator_step_{step}.pth")
+            torch.save(discriminator.state_dict(), f"model_checkpoints/discriminator_step_{step}.pth")
+            torch.save(generator.state_dict(), f"model_checkpoints/generator_step_{step}.pth")
             
     training_loss.close()

@@ -22,6 +22,6 @@ if __name__ == "__main__":
         max_channels=MAX_CHANNELS
     ).to(device)
 
-    generator.load_state_dict(torch.load("../model_checkpoints/generator_step_7000.pth"))
+    generator.load_state_dict(torch.load("model_checkpoints/generator_step_7000.pth"))
     samples = generator.sample(16)
-    torchvision.utils.save_image(samples, "../samples.png", nrow=4)
+    torchvision.utils.save_image(samples, "samples.png", nrow=4)
