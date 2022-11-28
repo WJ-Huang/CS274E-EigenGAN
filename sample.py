@@ -1,8 +1,6 @@
 import torch
 import torchvision
-import train
 import model
-import matplotlib.pyplot as plt
 
 from config import *
 
