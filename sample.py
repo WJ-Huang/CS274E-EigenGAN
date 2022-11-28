@@ -4,10 +4,10 @@ import model
 
 from config import *
 
-def gen_and_save_sample(generator, n_samples, n_row, path):
+def gen_and_save_sample(generator, n_samples, nrow, path):
     with torch.no_grad():
         samples = generator.sample(n_samples)
-    torchvision.utils.save_image(samples, path, n_row)
+    torchvision.utils.save_image(samples, path, nrow=nrow)
 
 if __name__ == "__main__":
 
@@ -22,5 +22,5 @@ if __name__ == "__main__":
         max_channels=MAX_CHANNELS
     ).to(device)
 
-    generator.load_state_dict(torch.load("model_checkpoints/generator_step_7000.pth"))
+    generator.load_state_dict(torch.load("model_checkpoints/generator_step_4000.ckpt"))
     gen_and_save_sample(generator, 16, 4, "samples/sample.jpg")
