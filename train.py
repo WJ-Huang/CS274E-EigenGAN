@@ -4,6 +4,7 @@ import loss
 from torchvision import transforms
 from torch.utils.data import DataLoader
 from dataset import Dataset, infinite_loader
+from sample import gen_and_save_sample
 
 DATASET_PATH = "data/anime"
 TRAINING_LOSS_FILE = "training_loss.csv"
@@ -18,6 +19,7 @@ MAX_CHANNELS = 32
 R1_PENALTY_COEFFICIENT = 10
 ORTHOGONAL_REGULERIZATION_COEFFICIENT = 100
 SAVE_EVERY = 1000
+SAMPLE_EVERY = 5000
 
 if __name__ == "__main__":
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -104,7 +106,11 @@ if __name__ == "__main__":
         training_loss.write(f"{discriminator_loss.item()}, {generator_loss.item()}\n")
 
         if step > 0 and step % SAVE_EVERY == 0:
-            torch.save(discriminator.state_dict(), f"model_checkpoints/discriminator_step_{step}.pth")
-            torch.save(generator.state_dict(), f"model_checkpoints/generator_step_{step}.pth")
+            torch.save(discriminator.state_dict(), f"model_checkpoints/discriminator_step_{step}.ckpt")
+            torch.save(generator.state_dict(), f"model_checkpoints/generator_step_{step}.ckpt")
+        
+        if step > 0 and step % SAMPLE_EVERY == 0:
+            gen_and_save_sample(generator, 16, 4, f"samples/samples_{step}.jpg")
+
             
     training_loss.close()
