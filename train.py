@@ -73,13 +73,14 @@ if __name__ == "__main__":
         discriminator_loss.backward()
         d_optim.step()
 
-        # R1 penalty
-        real.requires_grad = True
-        real_pred = discriminator(real)
-        r1 = loss.r1_loss(real_pred, real) * R1_PENALTY_COEFFICIENT
-        discriminator.zero_grad()
-        r1.backward()
-        d_optim.step()
+        # R1 penalty, lazy penalty
+        if step % REG_EVERY == 0:
+            real.requires_grad = True
+            real_pred = discriminator(real)
+            r1 = loss.r1_loss(real_pred, real) * R1_PENALTY_COEFFICIENT
+            discriminator.zero_grad()
+            r1.backward()
+            d_optim.step()
 
         fake = generator.sample(BATCH)
         fake_pred = discriminator(fake)
