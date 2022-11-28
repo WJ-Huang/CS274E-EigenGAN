@@ -4,17 +4,14 @@ import train
 import model
 import matplotlib.pyplot as plt
 
+from config import *
+
 def gen_and_save_sample(generator, n_samples, n_row, path):
     with torch.no_grad():
         samples = generator.sample(n_samples)
     torchvision.utils.save_image(samples, path, n_row)
 
 if __name__ == "__main__":
-    SIZE = train.SIZE
-    NUM_BASIS = train.NUM_BASIS
-    NOISE_DIM = train.NOISE_DIM
-    BASE_CHANNELS = train.BASE_CHANNELS
-    MAX_CHANNELS = train.MAX_CHANNELS
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     torch.manual_seed(0)

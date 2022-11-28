@@ -5,21 +5,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from dataset import Dataset, infinite_loader
 from sample import gen_and_save_sample
-
-DATASET_PATH = "data/anime"
-TRAINING_LOSS_FILE = "training_loss.csv"
-SIZE = 64
-BATCH = 16
-LEARNING_RATE = 1e-3
-STEPS = 300000
-NUM_BASIS = 6
-NOISE_DIM = SIZE * 2
-BASE_CHANNELS = 16
-MAX_CHANNELS = SIZE * 2
-R1_PENALTY_COEFFICIENT = 10
-ORTHOGONAL_REGULERIZATION_COEFFICIENT = 100
-SAVE_EVERY = 1000
-SAMPLE_EVERY = 5000
+from config import *
 
 if __name__ == "__main__":
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
