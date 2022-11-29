@@ -71,7 +71,8 @@ if __name__ == "__main__":
             dataset,
             batch_size=BATCH,
             shuffle=True,
-            drop_last=True
+            drop_last=True,
+            num_workers=NUM_WORKERS
         )
     )
 
