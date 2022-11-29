@@ -11,7 +11,7 @@ class SubspaceModel(nn.Module):
         super().__init__()
         self.U = nn.Parameter(torch.empty((dim, num_basis)))    # size(d, q)
         nn.init.orthogonal_(self.U)
-        self.L = nn.Parameter(torch.ones(num_basis)) # q
+        self.L = nn.Parameter(torch.FloatTensor([3 * i for i in range(num_basis, 0, -1)])) # q
         self.mu = nn.Parameter(torch.zeros(dim)) # size(d, 1)
 
     def forward(self, z):
@@ -71,11 +71,11 @@ class EigenBlock(nn.Module):
         phi = self.subspacelayer(z).reshape(h.shape)
 
         out = self.subspace_conv1(phi) + h
-        out = F.leaky_relu(out)
+        out = F.leaky_relu(out, 0.2, inplace=True)
         out = self.feature_conv1(out)
 
         out = self.subspace_conv2(phi) + out
-        out = F.leaky_relu(out)
+        out = F.leaky_relu(out, 0.2, inplace=True)
         out = self.feature_conv2(out)
         return out
 
@@ -111,7 +111,7 @@ class Generator(nn.Module):
             )
         
         self.output_layer = nn.Sequential(
-            nn.LeakyReLU(),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(
                 base_channels,
                 3,
@@ -168,7 +168,7 @@ class Discriminator(nn.Module):
                 stride=1,
                 padding=3
             ),
-            nn.LeakyReLU()
+            nn.LeakyReLU(0.2, inplace=True)
         ]
 
         num_channels = base_channels
@@ -176,19 +176,19 @@ class Discriminator(nn.Module):
             next_num_channels = min(max_channels, num_channels * 2)
             blocks += [
                 nn.Conv2d(num_channels, num_channels, kernel_size=3, stride=1, padding=1),
-                nn.LeakyReLU(),
+                nn.LeakyReLU(0.2, inplace=True),
                 nn.Conv2d(num_channels, next_num_channels, kernel_size=3, stride=2, padding=1),
-                nn.LeakyReLU()
+                nn.LeakyReLU(0.2, inplace=True)
             ]
             num_channels = next_num_channels
         blocks.append(nn.Conv2d(num_channels, num_channels, kernel_size=3, stride=1, padding=1))
-        blocks.append(nn.LeakyReLU())
+        blocks.append(nn.LeakyReLU(0.2, inplace=True))
 
         self.blocks = nn.Sequential(*blocks)
         self.output_layer = nn.Sequential(
             nn.Flatten(),
             nn.Linear(4 * 4 * num_channels, num_channels),
-            nn.LeakyReLU(),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(num_channels, 1)
         )
 

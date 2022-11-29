@@ -6,7 +6,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from dataset import Dataset, infinite_loader
 from sample import gen_and_save_sample
-from augmentation import DiffAugment
+from augmentation import augment
 from functools import partial
 from config import *
 
@@ -35,6 +35,11 @@ if __name__ == "__main__":
         base_channels=BASE_CHANNELS,
         max_channels=MAX_CHANNELS,
     ).to(device)
+
+    if START_FROM > 0:
+        generator.load_state_dict(torch.load(f"model_checkpoints/generator_step_{START_FROM}.ckpt"))
+        discriminator.load_state_dict(torch.load(f"model_checkpoints/discriminator_step_{START_FROM}.ckpt"))
+        g_ema.load_state_dict(torch.load(f"model_checkpoints/g_ema_step_{START_FROM}.ckpt"))
 
     # optimizers
     g_optim = torch.optim.Adam(
@@ -70,16 +75,15 @@ if __name__ == "__main__":
         )
     )
 
-    augment = DiffAugment(policy='color,translation,cutout', p=0.6)
     ema = partial(accumulate, decay=0.5 ** (BATCH / (10 * 1000)))
 
-    for step in range(STEPS):
+    for step in range(START_FROM+1, STEPS):
         real = next(loader).to(device)
         with torch.no_grad():
             fake = generator.sample(BATCH)
 
-        real_pred = discriminator(augment(real))
-        fake_pred = discriminator(augment(fake))
+        real_pred = discriminator(augment(real, 0.6))
+        fake_pred = discriminator(augment(fake, 0.6))
 
         # adverserial loss
         discriminator_loss = loss.discriminator_hinge_loss(real_pred, fake_pred)
@@ -90,7 +94,7 @@ if __name__ == "__main__":
         # R1 penalty, lazy penalty
         if step % REG_EVERY == 0:
             real.requires_grad = True
-            real_pred = discriminator(augment(real))
+            real_pred = discriminator(augment(real, 0.6))
             r1 = loss.r1_loss(real_pred, real) * R1_PENALTY_COEFFICIENT
             discriminator.zero_grad()
             r1.backward()

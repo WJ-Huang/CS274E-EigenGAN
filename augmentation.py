@@ -3,22 +3,12 @@
 import torch
 import torch.nn.functional as F
 import random
-from functools import partial
 
-
-def DiffAugment(policy='color,translation,cutout', p=0.6):
-
-    def augment(x, policy, p):
-        if policy:
-            for op in policy.split(','):
-                for f in AUGMENT_FNS[op]:
-                    if random.random() < p:
-                        x = f(x)
-            x = x.contiguous()
-        return x
-
-    return partial(augment, policy=policy, p=p)
-
+def augment(x, p):
+    for f in [rand_brightness, rand_saturation, rand_contrast, rand_translation, rand_cutout]:
+        if random.random() < p:
+            x = f(x)
+    return x
 
 def rand_brightness(x):
     x = x + (torch.rand(x.size(0), 1, 1, 1, dtype=x.dtype, device=x.device) - 0.5)
@@ -73,10 +63,3 @@ def rand_cutout(x, ratio=0.5):
     mask[grid_batch, grid_x, grid_y] = 0
     x = x * mask.unsqueeze(1)
     return x
-
-
-AUGMENT_FNS = {
-    'color': [rand_brightness, rand_saturation, rand_contrast],
-    'translation': [rand_translation],
-    'cutout': [rand_cutout],
-}
