@@ -78,8 +78,8 @@ if __name__ == "__main__":
         with torch.no_grad():
             fake = generator.sample(BATCH)
 
-        real_pred = discriminator(real)
-        fake_pred = discriminator(fake)
+        real_pred = discriminator(augment(real))
+        fake_pred = discriminator(augment(fake))
 
         # adverserial loss
         discriminator_loss = loss.discriminator_hinge_loss(real_pred, fake_pred)
@@ -90,7 +90,7 @@ if __name__ == "__main__":
         # R1 penalty, lazy penalty
         if step % REG_EVERY == 0:
             real.requires_grad = True
-            real_pred = discriminator(real)
+            real_pred = discriminator(augment(real))
             r1 = loss.r1_loss(real_pred, real) * R1_PENALTY_COEFFICIENT
             discriminator.zero_grad()
             r1.backward()
