@@ -9,13 +9,13 @@ class SubspaceModel(nn.Module):
         num_basis: int      # q
     ) -> None:
         super().__init__()
-        self.U = nn.Parameter(torch.empty((dim, num_basis)))    # size(d, q)
+        self.U = nn.Parameter(torch.empty((num_basis, dim)))    # size(d, q)
         nn.init.orthogonal_(self.U)
         self.L = nn.Parameter(torch.FloatTensor([3 * i for i in range(num_basis, 0, -1)])) # q
         self.mu = nn.Parameter(torch.zeros(dim)) # size(d, 1)
 
     def forward(self, z):
-        return torch.mm(self.L * z, self.U.T) + self.mu
+        return torch.mm(self.L * z, self.U) + self.mu
 
 class EigenBlock(nn.Module):
     def __init__(self, 
