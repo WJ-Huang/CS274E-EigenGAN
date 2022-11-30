@@ -1,6 +1,7 @@
 import torch
 import model
 import loss
+import copy
 
 from torchvision import transforms
 from torch.utils.data import DataLoader
@@ -20,6 +21,7 @@ if __name__ == "__main__":
         base_channels=BASE_CHANNELS,
         max_channels=MAX_CHANNELS
     ).to(device)
+    g_ema = copy.deepcopy(generator)
     
     discriminator = model.Discriminator(
         size=SIZE, 
@@ -81,14 +83,13 @@ if __name__ == "__main__":
         discriminator_loss.backward()
         d_optim.step()
 
-        # R1 penalty, lazy penalty
-        if step % REG_EVERY == 0:
-            real.requires_grad = True
-            real_pred = discriminator(real)
-            r1 = loss.r1_reg(real_pred, real) * R1_PENALTY_COEFFICIENT
-            discriminator.zero_grad()
-            r1.backward()
-            d_optim.step()
+        # R1 penalty
+        real.requires_grad = True
+        real_pred = discriminator(augment(real))
+        r1 = loss.r1_reg(real_pred, real) * R1_PENALTY_COEFFICIENT
+        discriminator.zero_grad()
+        r1.backward()
+        d_optim.step()
 
         fake = generator.sample(BATCH)
         fake_pred = discriminator(augment(fake))
@@ -97,14 +98,21 @@ if __name__ == "__main__":
         generator_loss.backward()
         g_optim.step()
 
+        # compute generator ema
+        g_ema_params = dict(g_ema.named_parameters())
+        generator_params = dict(generator.named_parameters())
+        for k in g_ema_params.keys():
+            g_ema_params[k].data.mul_(EMA_DECAY).add_(generator_params[k].data, alpha=1-EMA_DECAY)
+
         print(f'Step: {step}/{STEPS}, D_loss: {discriminator_loss.item()}, G_loss: {generator_loss.item()}')
         training_loss.write(f"{discriminator_loss.item()}, {generator_loss.item()}\n")
 
         if step > 0 and step % SAVE_EVERY == 0:
             torch.save(discriminator.state_dict(), f"model_checkpoints/discriminator_step_{step}.ckpt")
             torch.save(generator.state_dict(), f"model_checkpoints/generator_step_{step}.ckpt")
+            torch.save(g_ema.state_dict(), f"model_checkpoints/g_ema_step_{step}.ckpt")
         
         if step > 0 and step % SAMPLE_EVERY == 0:
-            gen_and_save_sample(generator, 16, 4, f"samples/samples_{step}.jpg")
+            gen_and_save_sample(g_ema, 16, 4, f"samples/samples_{step}.jpg")
 
     training_loss.close()
