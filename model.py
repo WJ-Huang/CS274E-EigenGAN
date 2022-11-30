@@ -121,28 +121,21 @@ class Generator(nn.Module):
 
     def sampleLatentVariables(self, batch: int):
         device = self.getDevice()
-        epsilon_samples = torch.randn(batch, self.noise_dim, device= device)
-        z_samples = torch.randn(batch, self.num_blocks, self.num_basis, device=device) # sample z of each block together
+        epsilon_samples = torch.randn(batch, self.noise_dim, device=device)
+        z_samples = torch.randn(batch, self.num_blocks, self.num_basis, device=device)
         return epsilon_samples, z_samples
     
     def forward(self, latent_variables):
         epsilon_samples, z_samples = latent_variables
 
         output = self.fc_layer(epsilon_samples).reshape(len(epsilon_samples), -1, 4, 4)
-        for block, z_sample in zip(self.blocks, torch.permute(z_samples, (1, 0, 2))):
-            output = block(z_sample, output)
+        for i in range(self.num_blocks):
+            output = self.blocks[i](z_samples[:, i, :], output)
         
         return self.output_layer(output)
     
     def sample(self, batch: int):
         return self.forward(self.sampleLatentVariables(batch))
-
-    def regularize(self):
-        reg = []
-        for layer in self.modules():
-            if isinstance(layer, SubspaceModel):
-                reg.append(torch.mean((layer.U.matmul(layer.U.T) - torch.eye(layer.U.shape[0], device=self.getDevice()))**2))
-        return sum(reg) / len(reg)
 
 class Discriminator(nn.Module):
     def __init__(self,

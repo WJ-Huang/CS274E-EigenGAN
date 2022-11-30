@@ -21,7 +21,6 @@ if __name__ == "__main__":
         max_channels=MAX_CHANNELS
     ).to(device)
     
-
     discriminator = model.Discriminator(
         size=SIZE, 
         base_channels=BASE_CHANNELS,
@@ -31,7 +30,6 @@ if __name__ == "__main__":
     if START_FROM > 0:
         generator.load_state_dict(torch.load(f"model_checkpoints/generator_step_{START_FROM}.ckpt"))
         discriminator.load_state_dict(torch.load(f"model_checkpoints/discriminator_step_{START_FROM}.ckpt"))
-        g_ema.load_state_dict(torch.load(f"model_checkpoints/g_ema_step_{START_FROM}.ckpt"))
 
     # optimizers
     g_optim = torch.optim.Adam(
@@ -87,14 +85,14 @@ if __name__ == "__main__":
         if step % REG_EVERY == 0:
             real.requires_grad = True
             real_pred = discriminator(real)
-            r1 = loss.r1_loss(real_pred, real) * R1_PENALTY_COEFFICIENT
+            r1 = loss.r1_reg(real_pred, real) * R1_PENALTY_COEFFICIENT
             discriminator.zero_grad()
             r1.backward()
             d_optim.step()
 
         fake = generator.sample(BATCH)
         fake_pred = discriminator(fake)
-        generator_loss = loss.generator_hinge_loss(fake_pred) + generator.regularize() * ORTHOGONAL_REGULERIZATION_COEFFICIENT
+        generator_loss = loss.generator_hinge_loss(fake_pred) + loss.orth_reg(generator) * ORTHOGONAL_REGULERIZATION_COEFFICIENT
         generator.zero_grad()
         generator_loss.backward()
         g_optim.step()
