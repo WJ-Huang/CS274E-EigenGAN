@@ -3,6 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from config import *
+
 class SubspaceModel(nn.Module):
     def __init__(self, 
         dim: int,           # d
@@ -87,7 +89,7 @@ class Generator(nn.Module):
         self.num_basis = num_basis
 
         self.num_blocks = int(math.log(size, 2) - 2)
-        channel_nums = [min(max_channels, base_channels * (2**(self.num_blocks - i))) for i in range(self.num_blocks)]   
+        channel_nums = [min(max_channels, base_channels * (2**(self.num_blocks - i))) for i in range(self.num_blocks+1)]
         self.fc_layer = nn.Linear(self.noise_dim, 4 * 4 * channel_nums[0])
 
         self.blocks = nn.ModuleList()
@@ -154,25 +156,24 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2, inplace=True)
         ]
 
-        num_channels = base_channels
-        for _ in range(int(math.log(size, 2) - 2)):
-            next_num_channels = min(max_channels, num_channels * 2)
+        self.num_blocks = int(math.log(size, 2) - 2)
+        channel_nums = [min(max_channels, base_channels * 2**i) for i in range(self.num_blocks+1)]
+        for i in range(self.num_blocks):
             blocks += [
-                nn.Conv2d(num_channels, num_channels, kernel_size=3, stride=1, padding=1),
+                nn.Conv2d(channel_nums[i], channel_nums[i], kernel_size=3, stride=1, padding=1),
                 nn.LeakyReLU(0.2, inplace=True),
-                nn.Conv2d(num_channels, next_num_channels, kernel_size=3, stride=2, padding=1),
+                nn.Conv2d(channel_nums[i], channel_nums[i+1], kernel_size=3, stride=2, padding=1),
                 nn.LeakyReLU(0.2, inplace=True)
             ]
-            num_channels = next_num_channels
-        blocks.append(nn.Conv2d(num_channels, num_channels, kernel_size=3, stride=1, padding=1))
+        blocks.append(nn.Conv2d(channel_nums[-1], channel_nums[-1], kernel_size=3, stride=1, padding=1))
         blocks.append(nn.LeakyReLU(0.2, inplace=True))
 
         self.blocks = nn.Sequential(*blocks)
         self.output_layer = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(4 * 4 * num_channels, num_channels),
+            nn.Linear(4 * 4 * channel_nums[-1], channel_nums[-1]),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(num_channels, 1)
+            nn.Linear(channel_nums[-1], 1)
         )
 
     def forward(self, input):
