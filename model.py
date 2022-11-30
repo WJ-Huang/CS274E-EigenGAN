@@ -11,7 +11,7 @@ class SubspaceModel(nn.Module):
         super().__init__()
         self.U = nn.Parameter(torch.empty((num_basis, dim)))    # size(d, q)
         nn.init.orthogonal_(self.U)
-        self.L = nn.Parameter(torch.FloatTensor([3 * i for i in range(num_basis, 0, -1)])) # q
+        self.L = nn.Parameter(torch.ones(num_basis)) # q
         self.mu = nn.Parameter(torch.zeros(dim)) # size(d, 1)
 
     def forward(self, z):
