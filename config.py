@@ -1,6 +1,6 @@
 DATASET_PATH = "data/anime"
 TRAINING_LOSS_FILE = "training_loss.csv"
-SIZE = 64
+SIZE = 256
 BATCH = 16
 LEARNING_RATE = 1e-3
 STEPS = 300000
