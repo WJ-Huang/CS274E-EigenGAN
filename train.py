@@ -1,13 +1,13 @@
 import torch
 import model
 import loss
-import copy
+
 from torchvision import transforms
 from torch.utils.data import DataLoader
 from dataset import Dataset, infinite_loader
 from sample import gen_and_save_sample
 from config import *
-
+from augmentation import augment
 
 if __name__ == "__main__":
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -72,8 +72,8 @@ if __name__ == "__main__":
         with torch.no_grad():
             fake = generator.sample(BATCH)
 
-        real_pred = discriminator(real)
-        fake_pred = discriminator(fake)
+        real_pred = discriminator(augment(real))
+        fake_pred = discriminator(augment(fake))
 
         # adverserial loss
         discriminator_loss = loss.discriminator_hinge_loss(real_pred, fake_pred)
@@ -91,7 +91,7 @@ if __name__ == "__main__":
             d_optim.step()
 
         fake = generator.sample(BATCH)
-        fake_pred = discriminator(fake)
+        fake_pred = discriminator(augment(fake))
         generator_loss = loss.generator_hinge_loss(fake_pred) + loss.orth_reg(generator) * ORTHOGONAL_REGULERIZATION_COEFFICIENT
         generator.zero_grad()
         generator_loss.backward()
