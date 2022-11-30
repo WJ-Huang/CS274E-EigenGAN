@@ -58,7 +58,7 @@ class EigenBlock(nn.Module):
             output_padding=1
         )
 
-        self.feature_conv2 = nn.ConvTranspose2d( # output size H
+        self.feature_conv2 = nn.ConvTranspose2d(
             out_channels,
             out_channels,
             kernel_size=3,
@@ -77,7 +77,7 @@ class Generator(nn.Module):
     def __init__(self,
         size: int = 64,
         num_basis: int = 6,
-        noise_dim: int = 64, # generator input (\epsilon) dim
+        noise_dim: int = 64,
         base_channels: int = 16,
         max_channels: int = 64
     ) -> None:
@@ -85,12 +85,10 @@ class Generator(nn.Module):
 
         self.noise_dim = noise_dim
         self.num_basis = num_basis
-        self.num_blocks = int(math.log(size, 2) - 2) # size = 4 * (2**num_blocks)
 
-        def getChannelsNumber(block_idx: int):
-            return min(max_channels, base_channels * (2**(self.num_blocks - block_idx)))
-        
-        self.fc_layer = nn.Linear(self.noise_dim, 4 * 4 * getChannelsNumber(0))
+        self.num_blocks = int(math.log(size, 2) - 2)
+        channel_nums = [min(max_channels, base_channels * (2**(self.num_blocks - i))) for i in range(self.num_blocks)]   
+        self.fc_layer = nn.Linear(self.noise_dim, 4 * 4 * channel_nums[0])
 
         self.blocks = nn.ModuleList()
         for i in range(self.num_blocks):
@@ -98,8 +96,8 @@ class Generator(nn.Module):
                 EigenBlock(
                     width=4 * 2**i,
                     height=4 * 2**i,
-                    in_channels=getChannelsNumber(i),
-                    out_channels=getChannelsNumber(i + 1),
+                    in_channels=channel_nums[i],
+                    out_channels=channel_nums[i+1],
                     num_basis=self.num_basis
                 )
             )
