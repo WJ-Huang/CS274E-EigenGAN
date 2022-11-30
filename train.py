@@ -28,6 +28,7 @@ if __name__ == "__main__":
         base_channels=BASE_CHANNELS,
         max_channels=MAX_CHANNELS
     ).to(device)
+    
     g_ema = copy.deepcopy(generator).eval()
 
     discriminator = model.Discriminator(
@@ -35,7 +36,7 @@ if __name__ == "__main__":
         base_channels=BASE_CHANNELS,
         max_channels=MAX_CHANNELS,
     ).to(device)
-
+    
     if START_FROM > 0:
         generator.load_state_dict(torch.load(f"model_checkpoints/generator_step_{START_FROM}.ckpt"))
         discriminator.load_state_dict(torch.load(f"model_checkpoints/discriminator_step_{START_FROM}.ckpt"))
@@ -80,6 +81,7 @@ if __name__ == "__main__":
 
     for step in range(START_FROM+1, STEPS):
         real = next(loader).to(device)
+        
         with torch.no_grad():
             fake = generator.sample(BATCH)
 

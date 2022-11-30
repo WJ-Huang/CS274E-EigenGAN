@@ -69,14 +69,8 @@ class EigenBlock(nn.Module):
     
     def forward(self, z, h):
         phi = self.subspacelayer(z).reshape(h.shape)
-
-        out = self.subspace_conv1(phi) + h
-        out = F.leaky_relu(out, 0.2, inplace=True)
-        out = self.feature_conv1(out)
-
-        out = self.subspace_conv2(phi) + out
-        out = F.leaky_relu(out, 0.2, inplace=True)
-        out = self.feature_conv2(out)
+        out = self.feature_conv1(F.leaky_relu(self.subspace_conv1(phi) + h, 0.2, inplace=True))
+        out = self.feature_conv2(F.leaky_relu(self.subspace_conv2(phi) + out, 0.2, inplace=True))
         return out
 
 class Generator(nn.Module):
@@ -147,10 +141,8 @@ class Generator(nn.Module):
         reg = []
         for layer in self.modules():
             if isinstance(layer, SubspaceModel):
-                UUT = layer.U.matmul(layer.U.T)
-                M = UUT - torch.eye(UUT.shape[0], device=UUT.device)
-                reg.append(torch.mean(M**2))
-        return torch.mean(torch.stack(reg))
+                reg.append(torch.mean((layer.U.matmul(layer.U.T) - torch.eye(layer.U.shape[0], device=self.getDevice()))**2))
+        return sum(reg) / len(reg)
 
 class Discriminator(nn.Module):
     def __init__(self,
