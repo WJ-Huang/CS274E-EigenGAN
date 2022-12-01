@@ -13,7 +13,7 @@ class SubspaceModel(nn.Module):
         super().__init__()
         self.U = nn.Parameter(torch.empty((num_basis, dim)))    # size(d, q)
         nn.init.orthogonal_(self.U)
-        self.L = nn.Parameter(torch.ones(num_basis)) # q
+        self.L = nn.Parameter(torch.tensor([3*i for i in range(num_basis+1, 0, -1)])) # q
         self.mu = nn.Parameter(torch.zeros(dim)) # size(d, 1)
 
     def forward(self, z):
@@ -51,7 +51,7 @@ class EigenBlock(nn.Module):
             output_padding=1
         )
 
-        self.feature_conv1 = nn.ConvTranspose2d( # output size 2H
+        self.feature_conv1 = nn.ConvTranspose2d(
             in_channels,
             out_channels,
             kernel_size=3,
