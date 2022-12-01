@@ -1,13 +1,34 @@
 import torch
 import torchvision
 import model
+import numpy as np
 
 from config import *
+
+TRAVERSE = True
 
 def gen_and_save_sample(generator, n_samples, nrow, path):
     with torch.no_grad():
         samples = generator.sample(n_samples)
     torchvision.utils.save_image(samples, path, nrow=nrow, normalize=True,value_range=(-1, 1))
+
+def traverse_and_save_samples(generator, num_samples, range_len, samples_per_range):
+    epsilon_samples, z_samples = generator.sampleLatentVariables(num_samples)
+    _, n_layers, n_dim = z_samples.shape
+
+    js = np.linspace(-range_len, range_len, samples_per_range)
+    for i_layer in range(n_layers):
+        for i_dim in range(n_dim):
+            imgs = []
+            for j in js:
+                zs = z_samples.clone()
+                zs[:, i_layer, i_dim] = j
+                with torch.no_grad():
+                    img = generator((epsilon_samples, zs)).cpu()
+                    img = torch.cat([_img for _img in img], dim=1)
+                imgs.append(img)
+            imgs = torch.cat(imgs, dim=2)
+            torchvision.utils.save_image(imgs, f"samples/traverse_L{i_layer}_D{i_dim}.jpg", normalize=True,value_range=(-1, 1))
 
 if __name__ == "__main__":
 
@@ -22,5 +43,9 @@ if __name__ == "__main__":
         max_channels=MAX_CHANNELS
     ).to(device)
 
-    generator.load_state_dict(torch.load("model_checkpoints/generator_step_15000.ckpt"))
-    gen_and_save_sample(generator, 16, 4, "samples/sample.jpg")
+    generator.load_state_dict(torch.load("model_checkpoints/generator_step_600000.ckpt"))
+
+    if not TRAVERSE:
+        gen_and_save_sample(generator, 16, 4, "samples/sample.jpg")
+    else:
+        traverse_and_save_samples(generator, 8, 4.5, 9)
