@@ -18,6 +18,8 @@ def traverse_and_save_samples(generator, num_samples, range_len, samples_per_ran
 
     js = np.linspace(-range_len, range_len, samples_per_range)
     for layer in range(n_layers):
+        U = generator.blocks[layer].subspacelayer.U
+        print(f"||UUT-I||_F^2/n^2={torch.mean((U.matmul(U.T) - torch.eye(U.shape[0], device=generator.getDevice()))**2)}")
         for dim in range(n_dim):
             print(f"Layer {layer}, dimension {dim}, Lij={generator.blocks[layer].subspacelayer.L[dim]}")
             imgs = []
@@ -44,7 +46,7 @@ if __name__ == "__main__":
         max_channels=MAX_CHANNELS
     ).to(device)
 
-    generator.load_state_dict(torch.load("model_checkpoints/generator_step_600000.ckpt"))
+    generator.load_state_dict(torch.load("model_checkpoints/CelebA_256_1000000/g_ema_step_1000000.ckpt"))
 
     if not TRAVERSE:
         gen_and_save_sample(generator, 16, 4, "samples/sample.jpg")
