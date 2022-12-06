@@ -1,4 +1,6 @@
 *.pyc
 __pycache__/
-/data/
-/output/
+data/
+model_checkpoints/
+samples/
+training_loss.csv
