@@ -1,9 +1,9 @@
-DATASET_PATH = "data/anime"
+DATASET_PATH = "/content/CS274E-EigenGAN/data/aligned"
 TRAINING_LOSS_FILE = "training_loss.csv"
 SIZE = 256
 BATCH = 16
 LEARNING_RATE = 1e-4
-STEPS = 300000
+STEPS = 1000000
 NUM_BASIS = 6
 NOISE_DIM = SIZE * 2
 BASE_CHANNELS = 16
