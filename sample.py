@@ -54,7 +54,7 @@ if __name__ == "__main__":
         max_channels=MAX_CHANNELS
     ).to(device)
 
-    generator.load_state_dict(torch.load("model_checkpoints/CelebA_256_1000000/g_ema_step_1000000.ckpt"))
+    generator.load_state_dict(torch.load("model_checkpoints/g_ema_step_1000000.ckpt"))
 
     if not TRAVERSE:
         gen_and_save_sample(generator, 16, 4, "samples/sample.jpg")
