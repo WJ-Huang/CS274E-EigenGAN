@@ -2,7 +2,7 @@
 
 ## Usage
 
-### 1. download preposed data
+### 1. Download preprocessed data
 
 For CelebA data: https://drive.google.com/file/d/1b2i2zFMle0AVa-UG3qziBBarNA1yMosy/view?usp=share_link
 
